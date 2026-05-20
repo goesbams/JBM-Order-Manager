@@ -2,7 +2,8 @@
 //|  OM_License.mqh — License Validation (Phase 3)                   |
 //|  Placeholder — will ping license server via WebRequest           |
 //+------------------------------------------------------------------+
-#pragma once
+#ifndef OM_LICENSE_MQH
+#define OM_LICENSE_MQH
 
 // TODO Phase 3: implement HTTP license check
 // Format: JBM-XXXX-XXXX-XXXX-XXXX
@@ -27,3 +28,5 @@ bool ValidateLicense(string key)
    // }
    // return false;
   }
+
+#endif // OM_LICENSE_MQH

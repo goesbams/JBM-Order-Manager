@@ -2,7 +2,8 @@
 //|  OM_Exec.mqh — Order Execution Engine                            |
 //|  Handles: Market, Limit, Stop orders with TP/SL via CTrade       |
 //+------------------------------------------------------------------+
-#pragma once
+#ifndef OM_EXEC_MQH
+#define OM_EXEC_MQH
 #include <Trade/Trade.mqh>
 
 class COrderExec
@@ -80,3 +81,5 @@ public:
    string GetLastError() { return m_trade.ResultRetcodeDescription(); }
    uint   GetLastRetcode() { return m_trade.ResultRetcode(); }
   };
+
+#endif // OM_EXEC_MQH

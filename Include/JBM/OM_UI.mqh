@@ -4,7 +4,8 @@
 //|  Sections: Header · Order Type · Price · Qty · Exits ·           |
 //|            Extra Settings · Order Info · Submit                  |
 //+------------------------------------------------------------------+
-#pragma once
+#ifndef OM_UI_MQH
+#define OM_UI_MQH
 #include <JBM/OM_Calc.mqh>
 #include <JBM/OM_Exec.mqh>
 
@@ -142,7 +143,7 @@ private:
       int x = m_x;
 
       // Background
-      _Rect(m_prefix + "BG", x, y, w, 520, CLR_BG, CLR_BORDER);
+      _Rect(m_prefix + "BG", x, y, w, 590, CLR_BG, CLR_BORDER);
 
       // --- Header ---
       _Label(m_prefix + "LBL_SYMBOL", x + 10, y + 8,  Symbol(), 13, CLR_TEXT, true);
@@ -493,3 +494,5 @@ private:
    void _SetButtonColor(string name, color bg)
      { ObjectSetInteger(0, name, OBJPROP_BGCOLOR, bg); }
   };
+
+#endif // OM_UI_MQH

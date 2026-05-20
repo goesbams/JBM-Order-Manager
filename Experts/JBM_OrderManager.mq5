@@ -6,7 +6,7 @@
 //+------------------------------------------------------------------+
 #property copyright "JBM Trading Tools"
 #property version   "0.10"
-#property strict
+#property description "TradingView-style order panel with auto risk/reward calculation"
 
 #include <JBM/OM_Calc.mqh>
 #include <JBM/OM_UI.mqh>

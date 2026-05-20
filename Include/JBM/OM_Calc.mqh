@@ -2,7 +2,8 @@
 //|  OM_Calc.mqh — Calculation Engine                                |
 //|  Handles: pip value, lot sizing, margin, trade value, P&L        |
 //+------------------------------------------------------------------+
-#pragma once
+#ifndef OM_CALC_MQH
+#define OM_CALC_MQH
 
 class COrderCalc
   {
@@ -30,8 +31,9 @@ public:
       double tickValue = SymbolInfoDouble(m_symbol, SYMBOL_TRADE_TICK_VALUE);
       double tickSize  = SymbolInfoDouble(m_symbol, SYMBOL_TRADE_TICK_SIZE);
       double pipSize   = GetPipSize();
-      return (tickValue / tickSize) * pipSize * lots
-             * SymbolInfoDouble(m_symbol, SYMBOL_TRADE_CONTRACT_SIZE);
+      // tickValue is already per 1 lot — no need to multiply by contract size
+      // Verified: AUDUSD 10 lots → 1.0 * (0.0001/0.00001) * 10 = 100 USD ✓
+      return tickValue * (pipSize / tickSize) * lots;
      }
 
    //--- Trade value (notional)
@@ -114,3 +116,5 @@ public:
       return MathMin(MathMax(lots, minLot), maxLot);
      }
   };
+
+#endif // OM_CALC_MQH
