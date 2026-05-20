@@ -374,12 +374,10 @@ private:
       _SetButtonColor(m_prefix + "BTN_LMT", m_orderType == OT_LIMIT  ? C'60,60,80' : inactive);
       _SetButtonColor(m_prefix + "BTN_STP", m_orderType == OT_STOP   ? C'60,60,80' : inactive);
 
-      // Show/hide price input
-      bool showPrice = (m_orderType != OT_MARKET);
-      ObjectSetInteger(0, m_prefix + "EDT_PRICE", OBJPROP_TIMEFRAMES,
-                       showPrice ? OBJ_ALL_PERIODS : OBJ_NO_PERIODS);
-      ObjectSetInteger(0, m_prefix + "LBL_PRICE", OBJPROP_TIMEFRAMES,
-                       showPrice ? OBJ_ALL_PERIODS : OBJ_NO_PERIODS);
+      // Show/hide price input (-1 = all timeframes / shown, 0 = no timeframes / hidden)
+      long showFlag = (m_orderType != OT_MARKET) ? -1 : 0;
+      ObjectSetInteger(0, m_prefix + "EDT_PRICE", OBJPROP_TIMEFRAMES, showFlag);
+      ObjectSetInteger(0, m_prefix + "LBL_PRICE", OBJPROP_TIMEFRAMES, showFlag);
      }
 
    void _UpdateToggleButtons()

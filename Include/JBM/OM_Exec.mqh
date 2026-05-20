@@ -17,11 +17,15 @@ public:
      {
       m_trade.SetExpertMagicNumber(20260520);
       m_trade.SetDeviationInPoints(10);
-      m_trade.SetTypeFilling(ORDER_FILLING_IOC);
       m_trade.LogLevel(LOG_LEVEL_ERRORS);
+      // Filling type set per-symbol in SetSymbol() — do NOT hardcode here
      }
 
-   void SetSymbol(string symbol) { m_symbol = symbol; }
+   void SetSymbol(string symbol)
+     {
+      m_symbol = symbol;
+      m_trade.SetTypeFilling(_GetFillingType(symbol));
+     }
 
    //--- Market Order
    bool PlaceMarket(bool isBuy, double lots, double sl, double tp, string comment = "JBM-OM")
@@ -78,8 +82,18 @@ public:
       return 0; // GTC
      }
 
-   string GetLastError() { return m_trade.ResultRetcodeDescription(); }
+   string GetLastError()  { return m_trade.ResultRetcodeDescription(); }
    uint   GetLastRetcode() { return m_trade.ResultRetcode(); }
+
+private:
+   //--- Auto-detect broker's supported filling mode for this symbol
+   ENUM_ORDER_TYPE_FILLING _GetFillingType(string symbol)
+     {
+      // MQL5: query each filling flag separately via SymbolInfoInteger
+      if((int)SymbolInfoInteger(symbol, SYMBOL_FILLING_FOK) != 0) return ORDER_FILLING_FOK;
+      if((int)SymbolInfoInteger(symbol, SYMBOL_FILLING_IOC) != 0) return ORDER_FILLING_IOC;
+      return ORDER_FILLING_RETURN;   // fallback — ECN/STP brokers
+     }
   };
 
 #endif // OM_EXEC_MQH
