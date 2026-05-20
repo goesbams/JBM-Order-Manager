@@ -86,12 +86,12 @@ public:
    uint   GetLastRetcode() { return m_trade.ResultRetcode(); }
 
 private:
-   //--- Auto-detect broker's supported filling mode for this symbol
+   //--- Auto-detect broker's supported filling mode (from working JBM_OrderPanel pattern)
    ENUM_ORDER_TYPE_FILLING _GetFillingType(string symbol)
      {
-      // MQL5: query each filling flag separately via SymbolInfoInteger
-      if((int)SymbolInfoInteger(symbol, SYMBOL_FILLING_FOK) != 0) return ORDER_FILLING_FOK;
-      if((int)SymbolInfoInteger(symbol, SYMBOL_FILLING_IOC) != 0) return ORDER_FILLING_IOC;
+      long fillMode = SymbolInfoInteger(symbol, SYMBOL_FILLING_MODE);
+      if((fillMode & SYMBOL_FILLING_FOK) != 0) return ORDER_FILLING_FOK;
+      if((fillMode & SYMBOL_FILLING_IOC) != 0) return ORDER_FILLING_IOC;
       return ORDER_FILLING_RETURN;   // fallback — ECN/STP brokers
      }
   };

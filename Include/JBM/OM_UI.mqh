@@ -64,12 +64,18 @@ private:
    double            m_tradeValue, m_marginReq, m_pipValue;
 
 public:
-   COrderPanel() : m_x(20), m_y(50), m_width(280), m_prefix("JBM_OM_"),
-                   m_isBuy(true), m_orderType(OT_LIMIT),
-                   m_qtyMode(QTY_RISK_PCT), m_tpMode(EXIT_PIPS), m_slMode(EXIT_PIPS),
-                   m_tpEnabled(true), m_slEnabled(true), m_tif("GTC"),
-                   m_entryPrice(0), m_qtyValue(1.0), m_tpValue(50), m_slValue(30),
-                   m_calc(NULL), m_exec(NULL) {}
+   COrderPanel()
+     {
+      m_x = 20; m_y = 50; m_width = 280; m_prefix = "JBM_OM_";
+      m_isBuy = true; m_orderType = OT_LIMIT;
+      m_qtyMode = QTY_RISK_PCT; m_tpMode = EXIT_PIPS; m_slMode = EXIT_PIPS;
+      m_tpEnabled = true; m_slEnabled = true; m_tif = "GTC";
+      m_entryPrice = 0; m_qtyValue = 1.0; m_tpValue = 50; m_slValue = 30;
+      m_lots = 0; m_tpPips = 0; m_slPips = 0;
+      m_estProfit = 0; m_estLoss = 0; m_rr = 0;
+      m_tradeValue = 0; m_marginReq = 0; m_pipValue = 0;
+      m_calc = NULL; m_exec = NULL;
+     }
 
    void SetCalc(COrderCalc &calc) { m_calc = &calc; }
    void SetExec(COrderExec &exec) { m_exec = &exec; }
