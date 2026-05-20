@@ -1,0 +1,18 @@
+# Compiled MQL5
+*.ex5
+*.ex4
+
+# MetaEditor cache
+*.mqlcache
+*.mqlsymbol
+
+# Logs
+*.log
+Logs/
+
+# Tester output
+Tester/
+
+# OS files
+.DS_Store
+Thumbs.db
