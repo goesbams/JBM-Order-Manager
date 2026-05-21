@@ -1,33 +1,41 @@
 //+------------------------------------------------------------------+
-//|  OM_UI.mqh — Panel GUI                                           |
-//|  TradingView-style order panel built with MQL5 chart objects     |
-//|  Sections: Header · Order Type · Price · Qty · Exits ·           |
-//|            Extra Settings · Order Info · Submit                  |
+//|  OM_UI.mqh — Panel GUI (Full-Height Layout)                      |
+//|  TradingView-style order panel — large, readable, full screen    |
 //+------------------------------------------------------------------+
 #ifndef OM_UI_MQH
 #define OM_UI_MQH
 #include <JBM/OM_Calc.mqh>
 #include <JBM/OM_Exec.mqh>
 
-// --- Panel color scheme ---
-#define CLR_BG         C'30,30,30'
-#define CLR_BG_LIGHT   C'45,45,45'
-#define CLR_BUY        C'41,98,255'
-#define CLR_SELL       C'220,50,50'
-#define CLR_TEXT       clrWhite
-#define CLR_TEXT_DIM   C'150,150,150'
-#define CLR_BTN_SUBMIT C'41,98,255'
-#define CLR_BORDER     C'70,70,70'
-#define CLR_GREEN      C'0,200,100'
-#define CLR_RED        C'220,50,50'
+// --- Color scheme ---
+#define CLR_BG          C'22,26,30'
+#define CLR_BG_SECT     C'32,36,42'
+#define CLR_BG_INPUT    C'42,46,54'
+#define CLR_BUY         C'41,98,255'
+#define CLR_BUY_DIM     C'20,55,160'
+#define CLR_SELL        C'210,45,45'
+#define CLR_SELL_DIM    C'130,25,25'
+#define CLR_TEXT        clrWhite
+#define CLR_TEXT_DIM    C'140,148,160'
+#define CLR_BORDER      C'55,62,72'
+#define CLR_GREEN       C'0,210,100'
+#define CLR_RED         C'220,60,60'
+#define CLR_GOLD        C'255,200,60'
+#define CLR_DIVIDER     C'45,50,60'
 
-// --- Quantity modes ---
-enum ENUM_QTY_MODE { QTY_UNITS, QTY_MARGIN_USD, QTY_PCT_BALANCE, QTY_RISK_USD, QTY_RISK_PCT };
+// --- Layout constants ---
+#define PNL_WIDTH       340
+#define ROW_H           32       // standard input row height
+#define BTN_H           36       // button height
+#define LBL_SZ          11       // label font size
+#define HDR_SZ          13       // section header font size
+#define SYM_SZ          16       // symbol font size
+#define GAP             10       // section gap
+#define PAD             12       // left padding
 
-// --- TP/SL modes ---
+// --- Modes ---
+enum ENUM_QTY_MODE  { QTY_UNITS, QTY_MARGIN_USD, QTY_PCT_BALANCE, QTY_RISK_USD, QTY_RISK_PCT };
 enum ENUM_EXIT_MODE { EXIT_PRICE, EXIT_PIPS, EXIT_PCT_PRICE, EXIT_REWARD_USD, EXIT_REWARD_PCT };
-
-// --- Order type ---
 enum ENUM_ORDER_TYPE_UI { OT_MARKET, OT_LIMIT, OT_STOP };
 
 //+------------------------------------------------------------------+
@@ -37,7 +45,6 @@ private:
    int               m_x, m_y;
    int               m_width;
    string            m_prefix;
-
    COrderCalc        *m_calc;
    COrderExec        *m_exec;
 
@@ -49,15 +56,14 @@ private:
    ENUM_EXIT_MODE    m_slMode;
    bool              m_tpEnabled;
    bool              m_slEnabled;
-   string            m_tif;           // "GTC", "Day", "Week", "Month"
-
+   string            m_tif;
    double            m_entryPrice;
    double            m_qtyValue;
    double            m_tpValue;
    double            m_slValue;
-   double            m_lots;          // calculated lots
+   double            m_lots;
 
-   // Derived P&L
+   // Derived
    double            m_tpPips, m_slPips;
    double            m_estProfit, m_estLoss;
    double            m_rr;
@@ -66,7 +72,7 @@ private:
 public:
    COrderPanel()
      {
-      m_x = 20; m_y = 50; m_width = 280; m_prefix = "JBM_OM_";
+      m_x = 5; m_y = 5; m_width = PNL_WIDTH; m_prefix = "JBM_OM_";
       m_isBuy = true; m_orderType = OT_LIMIT;
       m_qtyMode = QTY_RISK_PCT; m_tpMode = EXIT_PIPS; m_slMode = EXIT_PIPS;
       m_tpEnabled = true; m_slEnabled = true; m_tif = "GTC";
@@ -88,19 +94,13 @@ public:
       if(m_calc) m_calc.SetSymbol(sym);
       if(m_exec) m_exec.SetSymbol(sym);
       m_entryPrice = SymbolInfoDouble(sym, m_isBuy ? SYMBOL_ASK : SYMBOL_BID);
-
       _BuildPanel();
       Refresh();
       return true;
      }
 
-   //+------------------------------------------------------------------+
-   void Destroy()
-     {
-      ObjectsDeleteAll(0, m_prefix);
-     }
+   void Destroy()   { ObjectsDeleteAll(0, m_prefix); }
 
-   //+------------------------------------------------------------------+
    void OnTick()
      {
       _RecalcAll();
@@ -109,28 +109,25 @@ public:
       _UpdatePnLDisplay();
      }
 
-   //+------------------------------------------------------------------+
    void Refresh()
      {
       _RecalcAll();
       _UpdateAll();
      }
 
-   //+------------------------------------------------------------------+
    void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
      {
       if(id == CHARTEVENT_OBJECT_CLICK)
         {
-         if(StringFind(sparam, m_prefix + "BTN_BUY") >= 0)    { m_isBuy = true;  _RecalcAll(); _UpdateAll(); }
-         if(StringFind(sparam, m_prefix + "BTN_SELL") >= 0)   { m_isBuy = false; _RecalcAll(); _UpdateAll(); }
-         if(StringFind(sparam, m_prefix + "BTN_MKT") >= 0)    { m_orderType = OT_MARKET; _UpdateAll(); }
-         if(StringFind(sparam, m_prefix + "BTN_LMT") >= 0)    { m_orderType = OT_LIMIT;  _UpdateAll(); }
-         if(StringFind(sparam, m_prefix + "BTN_STP") >= 0)    { m_orderType = OT_STOP;   _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "BTN_BUY")    >= 0) { m_isBuy = true;         _RecalcAll(); _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "BTN_SELL")   >= 0) { m_isBuy = false;        _RecalcAll(); _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "BTN_MKT")    >= 0) { m_orderType = OT_MARKET; _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "BTN_LMT")    >= 0) { m_orderType = OT_LIMIT;  _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "BTN_STP")    >= 0) { m_orderType = OT_STOP;   _UpdateAll(); }
          if(StringFind(sparam, m_prefix + "BTN_SUBMIT") >= 0) { _SubmitOrder(); }
-         if(StringFind(sparam, m_prefix + "TOG_TP") >= 0)     { m_tpEnabled = !m_tpEnabled; _UpdateAll(); }
-         if(StringFind(sparam, m_prefix + "TOG_SL") >= 0)     { m_slEnabled = !m_slEnabled; _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "TOG_TP")     >= 0) { m_tpEnabled = !m_tpEnabled; _UpdateAll(); }
+         if(StringFind(sparam, m_prefix + "TOG_SL")     >= 0) { m_slEnabled = !m_slEnabled; _UpdateAll(); }
         }
-
       if(id == CHARTEVENT_OBJECT_ENDEDIT)
         {
          _ReadInputs(sparam);
@@ -139,98 +136,149 @@ public:
         }
      }
 
-   //+------------------------------------------------------------------+
 private:
-   //--- Build all panel objects (called once on Create)
+   //+------------------------------------------------------------------+
+   //--- Build panel (full chart height, wide layout)
    void _BuildPanel()
      {
+      int chartH = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS);
+      int x = m_x;
       int y = m_y;
       int w = m_width;
-      int x = m_x;
+      int h = chartH - m_y - 5;    // fill chart height
 
-      // Background
-      _Rect(m_prefix + "BG", x, y, w, 590, CLR_BG, CLR_BORDER);
+      // === BACKGROUND ===
+      _Rect(m_prefix + "BG", x, y, w, h, CLR_BG, CLR_BORDER);
 
-      // --- Header ---
-      _Label(m_prefix + "LBL_SYMBOL", x + 10, y + 8,  Symbol(), 13, CLR_TEXT, true);
-      _Label(m_prefix + "LBL_BID",    x + 10, y + 28, "Bid: --", 10, CLR_SELL, false);
-      _Label(m_prefix + "LBL_ASK",    x + 90, y + 28, "Ask: --", 10, CLR_BUY,  false);
-      _Label(m_prefix + "LBL_SPR",    x + 180,y + 28, "Sprd: --", 10, CLR_TEXT_DIM, false);
-      y += 55;
+      int cy = y + GAP;             // current Y cursor
 
-      // --- Buy / Sell buttons ---
-      _Button(m_prefix + "BTN_BUY",  x + 5,        y, (w/2) - 8,  30, "BUY",  CLR_BUY,  CLR_TEXT);
-      _Button(m_prefix + "BTN_SELL", x + (w/2) + 3, y, (w/2) - 8, 30, "SELL", CLR_SELL, CLR_TEXT);
-      y += 38;
+      // ─────────────────────────────────────────
+      // SECTION 1 — Symbol + Bid/Ask
+      // ─────────────────────────────────────────
+      _Label(m_prefix + "LBL_SYMBOL", x + PAD, cy, Symbol(), SYM_SZ, CLR_TEXT, true);
+      cy += 26;
+      _Label(m_prefix + "LBL_BID", x + PAD,       cy, "Bid: --",   LBL_SZ, CLR_SELL,     false);
+      _Label(m_prefix + "LBL_ASK", x + PAD + 110, cy, "Ask: --",   LBL_SZ, CLR_BUY,      false);
+      _Label(m_prefix + "LBL_SPR", x + PAD + 220, cy, "Sprd: --",  LBL_SZ, CLR_TEXT_DIM, false);
+      cy += 28;
 
-      // --- Order type tabs ---
-      _Button(m_prefix + "BTN_MKT", x + 5,        y, (w/3) - 6, 25, "Market", CLR_BG_LIGHT, CLR_TEXT);
-      _Button(m_prefix + "BTN_LMT", x + (w/3),    y, (w/3) - 4, 25, "Limit",  CLR_BG_LIGHT, CLR_TEXT);
-      _Button(m_prefix + "BTN_STP", x + (w/3)*2+2,y, (w/3) - 6, 25, "Stop",   CLR_BG_LIGHT, CLR_TEXT);
-      y += 35;
+      _Divider(x, cy, w); cy += 8;
 
-      // --- Entry Price (Limit/Stop) ---
-      _Label(m_prefix + "LBL_PRICE", x + 10, y, "Entry Price", 9, CLR_TEXT_DIM, false);
-      y += 16;
-      _Edit(m_prefix + "EDT_PRICE", x + 5, y, w - 10, 24, "0.00000");
-      y += 32;
+      // ─────────────────────────────────────────
+      // SECTION 2 — BUY / SELL
+      // ─────────────────────────────────────────
+      int bw = (w - 3*PAD) / 2;
+      _Button(m_prefix + "BTN_BUY",  x + PAD,          cy, bw, BTN_H + 4, "BUY",  CLR_BUY,  CLR_TEXT);
+      _Button(m_prefix + "BTN_SELL", x + PAD + bw + PAD, cy, bw, BTN_H + 4, "SELL", CLR_SELL, CLR_TEXT);
+      cy += BTN_H + 4 + GAP;
 
-      // --- Quantity ---
-      _Label(m_prefix + "LBL_QTY", x + 10, y, "Quantity [Risk % ▼]", 9, CLR_TEXT_DIM, false);
-      y += 16;
-      _Edit(m_prefix + "EDT_QTY", x + 5, y, (w/2) - 8, 24, "1.0");
-      _Label(m_prefix + "LBL_QTY_USD", x + (w/2) + 5, y + 5, "0.00 USD", 9, CLR_TEXT_DIM, false);
-      y += 35;
+      // ─────────────────────────────────────────
+      // SECTION 3 — Order Type tabs
+      // ─────────────────────────────────────────
+      int tw = (w - 2*PAD) / 3;
+      _Button(m_prefix + "BTN_MKT", x + PAD,          cy, tw - 2, BTN_H - 4, "Market", CLR_BG_SECT, CLR_TEXT);
+      _Button(m_prefix + "BTN_LMT", x + PAD + tw,     cy, tw - 2, BTN_H - 4, "Limit",  CLR_BG_SECT, CLR_TEXT);
+      _Button(m_prefix + "BTN_STP", x + PAD + tw*2,   cy, tw - 2, BTN_H - 4, "Stop",   CLR_BG_SECT, CLR_TEXT);
+      cy += BTN_H + GAP;
 
-      // --- EXITS header ---
-      _Label(m_prefix + "LBL_EXITS", x + 10, y, "Exits", 10, CLR_TEXT, true);
-      y += 22;
+      // ─────────────────────────────────────────
+      // SECTION 4 — Entry Price (Limit/Stop only)
+      // ─────────────────────────────────────────
+      _Label(m_prefix + "LBL_PRICE", x + PAD, cy, "Entry Price", LBL_SZ, CLR_TEXT_DIM, false);
+      cy += 18;
+      _Edit(m_prefix + "EDT_PRICE", x + PAD, cy, w - 2*PAD, ROW_H, "0.00000");
+      cy += ROW_H + GAP;
+
+      // ─────────────────────────────────────────
+      // SECTION 5 — Quantity
+      // ─────────────────────────────────────────
+      _Label(m_prefix + "LBL_QTY", x + PAD, cy, "Quantity  [Risk % ▼]", LBL_SZ, CLR_TEXT_DIM, false);
+      cy += 18;
+      int ew = (w - 3*PAD) / 2;
+      _Edit(m_prefix + "EDT_QTY",     x + PAD,          cy, ew, ROW_H, "1.0");
+      _Label(m_prefix + "LBL_QTY_EQ", x + PAD*2 + ew,   cy + 8, "= 0.00 USD", LBL_SZ, CLR_TEXT_DIM, false);
+      cy += ROW_H + GAP + 4;
+
+      _Divider(x, cy, w); cy += GAP;
+
+      // ─────────────────────────────────────────
+      // SECTION 6 — Exits header
+      // ─────────────────────────────────────────
+      _Label(m_prefix + "LBL_EXITS", x + PAD, cy, "Exits", HDR_SZ, CLR_TEXT, true);
+      cy += 24;
 
       // --- Take Profit ---
-      _Label(m_prefix + "LBL_TP",     x + 10, y, "Take profit [Price ▼]", 9, CLR_TEXT_DIM, false);
-      _Button(m_prefix + "TOG_TP",    x + w - 50, y - 2, 44, 18, "OFF", CLR_BG_LIGHT, CLR_TEXT_DIM);
-      y += 18;
-      _Edit(m_prefix + "EDT_TP",      x + 5, y, (w/2) - 8, 24, "0.00000");
-      _Label(m_prefix + "LBL_TP_PIPS",x + (w/2) + 5, y + 5, "0.0 pips", 9, CLR_TEXT_DIM, false);
-      y += 26;
-      _Label(m_prefix + "LBL_TP_PNL", x + 10, y, "Est. Profit: --", 9, CLR_GREEN, false);
-      y += 22;
+      _Label(m_prefix + "LBL_TP", x + PAD, cy, "Take Profit  [Price ▼]", LBL_SZ, CLR_TEXT_DIM, false);
+      _Button(m_prefix + "TOG_TP", x + w - PAD - 52, cy - 2, 52, 22, "OFF", CLR_BG_SECT, CLR_TEXT_DIM);
+      cy += 22;
+      _Edit(m_prefix + "EDT_TP", x + PAD, cy, ew, ROW_H, "0.00000");
+      _Label(m_prefix + "LBL_TP_PIPS", x + PAD*2 + ew, cy + 8, "0.0 pips", LBL_SZ, CLR_TEXT_DIM, false);
+      cy += ROW_H + 6;
+      _Label(m_prefix + "LBL_TP_PNL", x + PAD, cy, "Est. Profit: --", LBL_SZ, CLR_GREEN, false);
+      cy += 22 + GAP;
 
       // --- Stop Loss ---
-      _Label(m_prefix + "LBL_SL",     x + 10, y, "Stop loss [Price ▼]", 9, CLR_TEXT_DIM, false);
-      _Button(m_prefix + "TOG_SL",    x + w - 50, y - 2, 44, 18, "OFF", CLR_BG_LIGHT, CLR_TEXT_DIM);
-      y += 18;
-      _Edit(m_prefix + "EDT_SL",      x + 5, y, (w/2) - 8, 24, "0.00000");
-      _Label(m_prefix + "LBL_SL_PIPS",x + (w/2) + 5, y + 5, "0.0 pips", 9, CLR_TEXT_DIM, false);
-      y += 26;
-      _Label(m_prefix + "LBL_SL_PNL", x + 10, y, "Est. Loss: --", 9, CLR_RED, false);
-      y += 22;
+      _Label(m_prefix + "LBL_SL", x + PAD, cy, "Stop Loss  [Price ▼]", LBL_SZ, CLR_TEXT_DIM, false);
+      _Button(m_prefix + "TOG_SL", x + w - PAD - 52, cy - 2, 52, 22, "OFF", CLR_BG_SECT, CLR_TEXT_DIM);
+      cy += 22;
+      _Edit(m_prefix + "EDT_SL", x + PAD, cy, ew, ROW_H, "0.00000");
+      _Label(m_prefix + "LBL_SL_PIPS", x + PAD*2 + ew, cy + 8, "0.0 pips", LBL_SZ, CLR_TEXT_DIM, false);
+      cy += ROW_H + 6;
+      _Label(m_prefix + "LBL_SL_PNL", x + PAD, cy, "Est. Loss: --", LBL_SZ, CLR_RED, false);
+      cy += 22 + GAP;
 
-      // --- R:R Summary ---
-      _Rect(m_prefix + "BG_RR", x + 5, y, w - 10, 30, CLR_BG_LIGHT, CLR_BORDER);
-      _Label(m_prefix + "LBL_RR", x + 12, y + 8, "R:R: --   Risk: -- USD   Reward: -- USD", 9, CLR_TEXT_DIM, false);
-      y += 38;
+      // ─────────────────────────────────────────
+      // SECTION 7 — R:R Summary box
+      // ─────────────────────────────────────────
+      _Rect(m_prefix + "BG_RR", x + PAD, cy, w - 2*PAD, 42, CLR_BG_SECT, CLR_BORDER);
+      _Label(m_prefix + "LBL_RR1", x + PAD + 8, cy + 6,  "R:R: --",        LBL_SZ, CLR_GOLD,     false);
+      _Label(m_prefix + "LBL_RR2", x + PAD + 8, cy + 22, "Risk: --  |  Reward: --", LBL_SZ, CLR_TEXT_DIM, false);
+      cy += 42 + GAP;
 
-      // --- Extra settings ---
-      _Label(m_prefix + "LBL_TIF", x + 10, y, "Time in Force: [Week ▼]", 9, CLR_TEXT_DIM, false);
-      y += 22;
+      _Divider(x, cy, w); cy += GAP;
 
-      // --- Order Info ---
-      _Label(m_prefix + "LBL_INFO_HDR",  x + 10, y, "Order Info", 10, CLR_TEXT, true);
-      y += 20;
-      _Label(m_prefix + "LBL_TRDVAL",  x + 10, y,       "Trade Value:   --", 9, CLR_TEXT_DIM, false);
-      y += 16;
-      _Label(m_prefix + "LBL_MARGIN",  x + 10, y,       "Margin Req:    --", 9, CLR_TEXT_DIM, false);
-      y += 16;
-      _Label(m_prefix + "LBL_AVAIL",   x + 10, y,       "Avail Margin:  --", 9, CLR_TEXT_DIM, false);
-      y += 16;
-      _Label(m_prefix + "LBL_LEV",     x + 10, y,       "Leverage:      --", 9, CLR_TEXT_DIM, false);
-      y += 16;
-      _Label(m_prefix + "LBL_PIPVAL",  x + 10, y,       "Pip Value:     --", 9, CLR_TEXT_DIM, false);
-      y += 24;
+      // ─────────────────────────────────────────
+      // SECTION 8 — Extra Settings
+      // ─────────────────────────────────────────
+      _Label(m_prefix + "LBL_TIF_HDR", x + PAD, cy, "Time in Force", LBL_SZ, CLR_TEXT_DIM, false);
+      _Label(m_prefix + "LBL_TIF",     x + PAD + 160, cy, "[Week ▼]", LBL_SZ, CLR_TEXT, false);
+      cy += 26 + GAP;
 
-      // --- Submit button ---
-      _Button(m_prefix + "BTN_SUBMIT", x + 5, y, w - 10, 38, "BUY @ --", CLR_BTN_SUBMIT, CLR_TEXT);
+      _Divider(x, cy, w); cy += GAP;
+
+      // ─────────────────────────────────────────
+      // SECTION 9 — Order Info
+      // ─────────────────────────────────────────
+      _Label(m_prefix + "LBL_INFO_HDR", x + PAD, cy, "Order Info", HDR_SZ, CLR_TEXT, true);
+      cy += 26;
+
+      int lx1 = x + PAD;
+      int lx2 = x + PAD + 155;
+      int ls  = LBL_SZ;
+      int lr  = 22;    // row height for info rows
+
+      _Label(m_prefix + "LBL_TRDVAL_K", lx1, cy, "Trade Value:",  ls, CLR_TEXT_DIM, false);
+      _Label(m_prefix + "LBL_TRDVAL",   lx2, cy, "--",            ls, CLR_TEXT,     false);
+      cy += lr;
+      _Label(m_prefix + "LBL_MARGIN_K", lx1, cy, "Margin Req:",   ls, CLR_TEXT_DIM, false);
+      _Label(m_prefix + "LBL_MARGIN",   lx2, cy, "--",            ls, CLR_TEXT,     false);
+      cy += lr;
+      _Label(m_prefix + "LBL_AVAIL_K",  lx1, cy, "Avail Margin:", ls, CLR_TEXT_DIM, false);
+      _Label(m_prefix + "LBL_AVAIL",    lx2, cy, "--",            ls, CLR_TEXT,     false);
+      cy += lr;
+      _Label(m_prefix + "LBL_LEV_K",    lx1, cy, "Leverage:",     ls, CLR_TEXT_DIM, false);
+      _Label(m_prefix + "LBL_LEV",      lx2, cy, "--",            ls, CLR_TEXT,     false);
+      cy += lr;
+      _Label(m_prefix + "LBL_PIPVAL_K", lx1, cy, "Pip Value:",    ls, CLR_TEXT_DIM, false);
+      _Label(m_prefix + "LBL_PIPVAL",   lx2, cy, "--",            ls, CLR_TEXT,     false);
+      cy += lr + GAP;
+
+      // ─────────────────────────────────────────
+      // SECTION 10 — Submit button (pinned near bottom)
+      // ─────────────────────────────────────────
+      int submitY = y + h - BTN_H - 14 - GAP;
+      _Divider(x, submitY - GAP, w);
+      _Button(m_prefix + "BTN_SUBMIT", x + PAD, submitY, w - 2*PAD, BTN_H + 6, "BUY @ --", CLR_BUY, CLR_TEXT);
 
       ChartRedraw();
      }
@@ -240,40 +288,23 @@ private:
      {
       if(!m_calc) return;
       string sym = Symbol();
-
-      double bid = SymbolInfoDouble(sym, SYMBOL_BID);
-      double ask = SymbolInfoDouble(sym, SYMBOL_ASK);
-
       if(m_orderType == OT_MARKET)
-         m_entryPrice = m_isBuy ? ask : bid;
+         m_entryPrice = m_isBuy ? SymbolInfoDouble(sym, SYMBOL_ASK)
+                                : SymbolInfoDouble(sym, SYMBOL_BID);
 
-      // Lots
       double slPips = (m_slEnabled && m_slValue > 0)
                       ? (m_slMode == EXIT_PIPS ? m_slValue : m_calc.PriceToPips(m_entryPrice, m_slValue))
                       : 0;
 
       switch(m_qtyMode)
         {
-         case QTY_UNITS:
-            m_lots = m_calc.NormalizeLots(m_qtyValue);
-            break;
-         case QTY_RISK_PCT:
-            m_lots = (slPips > 0) ? m_calc.GetLotFromRiskPct(m_qtyValue, slPips, m_entryPrice) : 0;
-            break;
-         case QTY_RISK_USD:
-            m_lots = (slPips > 0) ? m_calc.GetLotFromRiskUSD(m_qtyValue, slPips) : 0;
-            break;
-         case QTY_MARGIN_USD:
-            m_lots = m_calc.GetLotFromMarginUSD(m_qtyValue,
-                        m_isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, m_entryPrice);
-            break;
-         case QTY_PCT_BALANCE:
-            m_lots = m_calc.GetLotFromBalancePct(m_qtyValue,
-                        m_isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, m_entryPrice);
-            break;
+         case QTY_UNITS:       m_lots = m_calc.NormalizeLots(m_qtyValue); break;
+         case QTY_RISK_PCT:    m_lots = (slPips > 0) ? m_calc.GetLotFromRiskPct(m_qtyValue, slPips, m_entryPrice) : 0; break;
+         case QTY_RISK_USD:    m_lots = (slPips > 0) ? m_calc.GetLotFromRiskUSD(m_qtyValue, slPips) : 0; break;
+         case QTY_MARGIN_USD:  m_lots = m_calc.GetLotFromMarginUSD(m_qtyValue, m_isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, m_entryPrice); break;
+         case QTY_PCT_BALANCE: m_lots = m_calc.GetLotFromBalancePct(m_qtyValue, m_isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, m_entryPrice); break;
         }
 
-      // TP pips
       if(m_tpEnabled && m_tpValue > 0)
         {
          m_tpPips    = (m_tpMode == EXIT_PIPS) ? m_tpValue : m_calc.PriceToPips(m_entryPrice, m_tpValue);
@@ -281,7 +312,6 @@ private:
         }
       else { m_tpPips = 0; m_estProfit = 0; }
 
-      // SL pips
       if(m_slEnabled && m_slValue > 0)
         {
          m_slPips  = slPips;
@@ -292,11 +322,9 @@ private:
       m_rr         = m_calc.GetRR(m_tpPips, m_slPips);
       m_pipValue   = m_calc.GetPipValue(m_lots);
       m_tradeValue = m_calc.GetTradeValue(m_lots, m_entryPrice);
-      m_marginReq  = m_calc.GetMarginRequired(
-                        m_isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, m_lots, m_entryPrice);
+      m_marginReq  = m_calc.GetMarginRequired(m_isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, m_lots, m_entryPrice);
      }
 
-   //--- Update all display elements
    void _UpdateAll()
      {
       _UpdatePriceDisplay();
@@ -311,46 +339,42 @@ private:
 
    void _UpdatePriceDisplay()
      {
-      string sym = Symbol();
-      double bid = SymbolInfoDouble(sym, SYMBOL_BID);
-      double ask = SymbolInfoDouble(sym, SYMBOL_ASK);
+      string sym  = Symbol();
       int    digs = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
+      double bid  = SymbolInfoDouble(sym, SYMBOL_BID);
+      double ask  = SymbolInfoDouble(sym, SYMBOL_ASK);
       double sprd = (ask - bid) / m_calc.GetPipSize();
-
-      _SetLabelText(m_prefix + "LBL_BID", "Bid: " + DoubleToString(bid, digs));
-      _SetLabelText(m_prefix + "LBL_ASK", "Ask: " + DoubleToString(ask, digs));
-      _SetLabelText(m_prefix + "LBL_SPR", "Sprd: " + DoubleToString(sprd, 1) + " pips");
+      _SetLabel(m_prefix + "LBL_BID", "Bid: " + DoubleToString(bid, digs));
+      _SetLabel(m_prefix + "LBL_ASK", "Ask: " + DoubleToString(ask, digs));
+      _SetLabel(m_prefix + "LBL_SPR", "Sprd: " + DoubleToString(sprd, 1));
      }
 
    void _UpdateOrderInfo()
      {
-      string avail = DoubleToString(AccountInfoDouble(ACCOUNT_MARGIN_FREE), 2);
-      string lev   = IntegerToString((int)AccountInfoInteger(ACCOUNT_LEVERAGE));
-
-      _SetLabelText(m_prefix + "LBL_TRDVAL", "Trade Value:   " + DoubleToString(m_tradeValue, 2) + " USD");
-      _SetLabelText(m_prefix + "LBL_MARGIN", "Margin Req:    " + DoubleToString(m_marginReq, 2) + " USD");
-      _SetLabelText(m_prefix + "LBL_AVAIL",  "Avail Margin:  " + avail + " USD");
-      _SetLabelText(m_prefix + "LBL_LEV",    "Leverage:      " + lev + ":1");
-      _SetLabelText(m_prefix + "LBL_PIPVAL", "Pip Value:     " + DoubleToString(m_pipValue, 2) + " USD");
+      _SetLabel(m_prefix + "LBL_TRDVAL", DoubleToString(m_tradeValue, 2) + " USD");
+      _SetLabel(m_prefix + "LBL_MARGIN", DoubleToString(m_marginReq, 2)  + " USD");
+      _SetLabel(m_prefix + "LBL_AVAIL",  DoubleToString(AccountInfoDouble(ACCOUNT_MARGIN_FREE), 2) + " USD");
+      _SetLabel(m_prefix + "LBL_LEV",    IntegerToString((int)AccountInfoInteger(ACCOUNT_LEVERAGE)) + ":1");
+      _SetLabel(m_prefix + "LBL_PIPVAL", DoubleToString(m_pipValue, 2) + " USD");
      }
 
    void _UpdatePnLDisplay()
      {
-      string tpText = m_tpEnabled
-         ? "Est. Profit: +" + DoubleToString(m_estProfit, 2) + " USD  (" + DoubleToString(m_tpPips, 1) + " pips)"
-         : "Take Profit: OFF";
-      string slText = m_slEnabled
-         ? "Est. Loss:  -" + DoubleToString(m_estLoss, 2) + " USD  (" + DoubleToString(m_slPips, 1) + " pips)"
-         : "Stop Loss: OFF";
-      string rrText = "R:R: 1:" + DoubleToString(m_rr, 2)
-                    + "   Risk: " + DoubleToString(m_estLoss, 0) + " USD"
-                    + "   Reward: " + DoubleToString(m_estProfit, 0) + " USD";
+      string tpStr = m_tpEnabled
+         ? "+" + DoubleToString(m_estProfit, 2) + " USD   (" + DoubleToString(m_tpPips, 1) + " pips)"
+         : "OFF";
+      string slStr = m_slEnabled
+         ? "-" + DoubleToString(m_estLoss,  2) + " USD   (" + DoubleToString(m_slPips, 1) + " pips)"
+         : "OFF";
+      string rrStr = "R:R  1 : " + DoubleToString(m_rr, 2);
+      string rsStr = "Risk  -" + DoubleToString(m_estLoss, 0) + " USD   |   Reward  +" + DoubleToString(m_estProfit, 0) + " USD";
 
-      _SetLabelText(m_prefix + "LBL_TP_PIPS", DoubleToString(m_tpPips, 1) + " pips");
-      _SetLabelText(m_prefix + "LBL_SL_PIPS", DoubleToString(m_slPips, 1) + " pips");
-      _SetLabelText(m_prefix + "LBL_TP_PNL", tpText);
-      _SetLabelText(m_prefix + "LBL_SL_PNL", slText);
-      _SetLabelText(m_prefix + "LBL_RR", rrText);
+      _SetLabel(m_prefix + "LBL_TP_PIPS", DoubleToString(m_tpPips, 1) + " pips");
+      _SetLabel(m_prefix + "LBL_SL_PIPS", DoubleToString(m_slPips, 1) + " pips");
+      _SetLabel(m_prefix + "LBL_TP_PNL",  "Est. Profit:  " + tpStr);
+      _SetLabel(m_prefix + "LBL_SL_PNL",  "Est. Loss:    " + slStr);
+      _SetLabel(m_prefix + "LBL_RR1",     rrStr);
+      _SetLabel(m_prefix + "LBL_RR2",     rsStr);
      }
 
    void _UpdateSubmitButton()
@@ -358,29 +382,27 @@ private:
       string sym  = Symbol();
       int    digs = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
       string dir  = m_isBuy ? "BUY" : "SELL";
-      string type = (m_orderType == OT_MARKET) ? "MARKET"
+      string typ  = (m_orderType == OT_MARKET) ? "MARKET"
                   : (m_orderType == OT_LIMIT)  ? "LIMIT" : "STOP";
-      string text = dir + " " + DoubleToString(m_lots, 2) + " lots"
-                  + " @ " + DoubleToString(m_entryPrice, digs) + " " + type;
-
-      _SetButtonText(m_prefix + "BTN_SUBMIT", text);
-      _SetButtonColor(m_prefix + "BTN_SUBMIT", m_isBuy ? CLR_BUY : CLR_SELL);
+      string txt  = dir + "  " + DoubleToString(m_lots, 2) + " lots"
+                  + "  @  " + DoubleToString(m_entryPrice, digs) + "  " + typ;
+      _SetButton(m_prefix + "BTN_SUBMIT", txt);
+      _SetBtnColor(m_prefix + "BTN_SUBMIT", m_isBuy ? CLR_BUY : CLR_SELL);
      }
 
    void _UpdateDirectionButtons()
      {
-      _SetButtonColor(m_prefix + "BTN_BUY",  m_isBuy  ? CLR_BUY      : CLR_BG_LIGHT);
-      _SetButtonColor(m_prefix + "BTN_SELL", !m_isBuy ? CLR_SELL     : CLR_BG_LIGHT);
+      _SetBtnColor(m_prefix + "BTN_BUY",  m_isBuy  ? CLR_BUY  : CLR_BUY_DIM);
+      _SetBtnColor(m_prefix + "BTN_SELL", !m_isBuy ? CLR_SELL : CLR_SELL_DIM);
      }
 
    void _UpdateOrderTypeButtons()
      {
-      color active = CLR_TEXT; color inactive = CLR_BG_LIGHT;
-      _SetButtonColor(m_prefix + "BTN_MKT", m_orderType == OT_MARKET ? C'60,60,80' : inactive);
-      _SetButtonColor(m_prefix + "BTN_LMT", m_orderType == OT_LIMIT  ? C'60,60,80' : inactive);
-      _SetButtonColor(m_prefix + "BTN_STP", m_orderType == OT_STOP   ? C'60,60,80' : inactive);
-
-      // Show/hide price input (-1 = all timeframes / shown, 0 = no timeframes / hidden)
+      color active   = C'55,62,80';
+      color inactive = CLR_BG_SECT;
+      _SetBtnColor(m_prefix + "BTN_MKT", m_orderType == OT_MARKET ? active : inactive);
+      _SetBtnColor(m_prefix + "BTN_LMT", m_orderType == OT_LIMIT  ? active : inactive);
+      _SetBtnColor(m_prefix + "BTN_STP", m_orderType == OT_STOP   ? active : inactive);
       long showFlag = (m_orderType != OT_MARKET) ? -1 : 0;
       ObjectSetInteger(0, m_prefix + "EDT_PRICE", OBJPROP_TIMEFRAMES, showFlag);
       ObjectSetInteger(0, m_prefix + "LBL_PRICE", OBJPROP_TIMEFRAMES, showFlag);
@@ -388,13 +410,12 @@ private:
 
    void _UpdateToggleButtons()
      {
-      _SetButtonText(m_prefix + "TOG_TP", m_tpEnabled ? "ON" : "OFF");
-      _SetButtonColor(m_prefix + "TOG_TP", m_tpEnabled ? CLR_GREEN : CLR_BG_LIGHT);
-      _SetButtonText(m_prefix + "TOG_SL", m_slEnabled ? "ON" : "OFF");
-      _SetButtonColor(m_prefix + "TOG_SL", m_slEnabled ? CLR_GREEN : CLR_BG_LIGHT);
+      _SetButton(m_prefix + "TOG_TP", m_tpEnabled ? "ON" : "OFF");
+      _SetBtnColor(m_prefix + "TOG_TP", m_tpEnabled ? CLR_GREEN : CLR_BG_SECT);
+      _SetButton(m_prefix + "TOG_SL", m_slEnabled ? "ON" : "OFF");
+      _SetBtnColor(m_prefix + "TOG_SL", m_slEnabled ? CLR_GREEN : CLR_BG_SECT);
      }
 
-   //--- Read edited inputs
    void _ReadInputs(string objName)
      {
       string val = ObjectGetString(0, objName, OBJPROP_TEXT);
@@ -404,24 +425,21 @@ private:
       if(objName == m_prefix + "EDT_SL")    m_slValue    = StringToDouble(val);
      }
 
-   //--- Submit order
    void _SubmitOrder()
      {
-      if(!m_exec || m_lots <= 0) { Alert("Invalid lot size"); return; }
-
+      if(!m_exec || m_lots <= 0) { Alert("JBM-OM: Invalid lot size"); return; }
       double sl = (m_slEnabled && m_slValue > 0) ? m_slValue : 0;
       double tp = (m_tpEnabled && m_tpValue > 0) ? m_tpValue : 0;
-
-      // Convert pips to price if needed
-      if(m_slMode == EXIT_PIPS && sl > 0)
-         sl = m_isBuy ? m_entryPrice - sl * m_calc.GetPipSize()
-                      : m_entryPrice + sl * m_calc.GetPipSize();
-      if(m_tpMode == EXIT_PIPS && tp > 0)
-         tp = m_isBuy ? m_entryPrice + tp * m_calc.GetPipSize()
-                      : m_entryPrice - tp * m_calc.GetPipSize();
-
+      if(m_calc)
+        {
+         if(m_slMode == EXIT_PIPS && sl > 0)
+            sl = m_isBuy ? m_entryPrice - sl * m_calc.GetPipSize()
+                         : m_entryPrice + sl * m_calc.GetPipSize();
+         if(m_tpMode == EXIT_PIPS && tp > 0)
+            tp = m_isBuy ? m_entryPrice + tp * m_calc.GetPipSize()
+                         : m_entryPrice - tp * m_calc.GetPipSize();
+        }
       datetime expiry = m_exec.GetExpiry(m_tif);
-
       switch(m_orderType)
         {
          case OT_MARKET: m_exec.PlaceMarket(m_isBuy, m_lots, sl, tp); break;
@@ -431,35 +449,42 @@ private:
      }
 
    //+------------------------------------------------------------------+
-   //--- Helper: create objects
+   //--- Object helpers
    void _Rect(string name, int x, int y, int w, int h, color bg, color border)
      {
       ObjectCreate(0, name, OBJ_RECTANGLE_LABEL, 0, 0, 0);
-      ObjectSetInteger(0, name, OBJPROP_XDISTANCE,  x);
-      ObjectSetInteger(0, name, OBJPROP_YDISTANCE,  y);
-      ObjectSetInteger(0, name, OBJPROP_XSIZE,      w);
-      ObjectSetInteger(0, name, OBJPROP_YSIZE,      h);
-      ObjectSetInteger(0, name, OBJPROP_BGCOLOR,    bg);
+      ObjectSetInteger(0, name, OBJPROP_XDISTANCE,    x);
+      ObjectSetInteger(0, name, OBJPROP_YDISTANCE,    y);
+      ObjectSetInteger(0, name, OBJPROP_XSIZE,        w);
+      ObjectSetInteger(0, name, OBJPROP_YSIZE,        h);
+      ObjectSetInteger(0, name, OBJPROP_BGCOLOR,      bg);
       ObjectSetInteger(0, name, OBJPROP_BORDER_COLOR, border);
-      ObjectSetInteger(0, name, OBJPROP_CORNER,     CORNER_LEFT_UPPER);
-      ObjectSetInteger(0, name, OBJPROP_BACK,       false);
-      ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, name, OBJPROP_CORNER,       CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, name, OBJPROP_BACK,         false);
+      ObjectSetInteger(0, name, OBJPROP_SELECTABLE,   false);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER,       1);
      }
 
-   void _Label(string name, int x, int y, string text, int fontSize, color clr, bool bold)
+   void _Divider(int x, int y, int w)
+     {
+      _Rect(m_prefix + "DIV_" + IntegerToString(y), x + PAD, y, w - 2*PAD, 1, CLR_DIVIDER, CLR_DIVIDER);
+     }
+
+   void _Label(string name, int x, int y, string text, int sz, color clr, bool bold)
      {
       ObjectCreate(0, name, OBJ_LABEL, 0, 0, 0);
       ObjectSetInteger(0, name, OBJPROP_XDISTANCE,  x);
       ObjectSetInteger(0, name, OBJPROP_YDISTANCE,  y);
       ObjectSetString (0, name, OBJPROP_TEXT,        text);
-      ObjectSetInteger(0, name, OBJPROP_FONTSIZE,    fontSize);
+      ObjectSetInteger(0, name, OBJPROP_FONTSIZE,    sz);
       ObjectSetString (0, name, OBJPROP_FONT,        bold ? "Arial Bold" : "Arial");
       ObjectSetInteger(0, name, OBJPROP_COLOR,       clr);
       ObjectSetInteger(0, name, OBJPROP_CORNER,      CORNER_LEFT_UPPER);
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE,  false);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER,      5);
      }
 
-   void _Button(string name, int x, int y, int w, int h, string text, color bg, color textClr)
+   void _Button(string name, int x, int y, int w, int h, string text, color bg, color tc)
      {
       ObjectCreate(0, name, OBJ_BUTTON, 0, 0, 0);
       ObjectSetInteger(0, name, OBJPROP_XDISTANCE,  x);
@@ -468,35 +493,33 @@ private:
       ObjectSetInteger(0, name, OBJPROP_YSIZE,      h);
       ObjectSetString (0, name, OBJPROP_TEXT,        text);
       ObjectSetInteger(0, name, OBJPROP_BGCOLOR,     bg);
-      ObjectSetInteger(0, name, OBJPROP_COLOR,       textClr);
-      ObjectSetInteger(0, name, OBJPROP_FONTSIZE,    9);
+      ObjectSetInteger(0, name, OBJPROP_COLOR,       tc);
+      ObjectSetInteger(0, name, OBJPROP_FONTSIZE,    LBL_SZ);
+      ObjectSetString (0, name, OBJPROP_FONT,        "Arial Bold");
       ObjectSetInteger(0, name, OBJPROP_CORNER,      CORNER_LEFT_UPPER);
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE,  false);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER,      5);
      }
 
-   void _Edit(string name, int x, int y, int w, int h, string defaultVal)
+   void _Edit(string name, int x, int y, int w, int h, string val)
      {
       ObjectCreate(0, name, OBJ_EDIT, 0, 0, 0);
       ObjectSetInteger(0, name, OBJPROP_XDISTANCE,  x);
       ObjectSetInteger(0, name, OBJPROP_YDISTANCE,  y);
       ObjectSetInteger(0, name, OBJPROP_XSIZE,      w);
       ObjectSetInteger(0, name, OBJPROP_YSIZE,      h);
-      ObjectSetString (0, name, OBJPROP_TEXT,        defaultVal);
-      ObjectSetInteger(0, name, OBJPROP_BGCOLOR,     CLR_BG_LIGHT);
+      ObjectSetString (0, name, OBJPROP_TEXT,        val);
+      ObjectSetInteger(0, name, OBJPROP_BGCOLOR,     CLR_BG_INPUT);
       ObjectSetInteger(0, name, OBJPROP_COLOR,       CLR_TEXT);
-      ObjectSetInteger(0, name, OBJPROP_FONTSIZE,    9);
+      ObjectSetInteger(0, name, OBJPROP_FONTSIZE,    LBL_SZ);
       ObjectSetInteger(0, name, OBJPROP_CORNER,      CORNER_LEFT_UPPER);
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE,  false);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER,      5);
      }
 
-   void _SetLabelText(string name, string text)
-     { ObjectSetString(0, name, OBJPROP_TEXT, text); }
-
-   void _SetButtonText(string name, string text)
-     { ObjectSetString(0, name, OBJPROP_TEXT, text); }
-
-   void _SetButtonColor(string name, color bg)
-     { ObjectSetInteger(0, name, OBJPROP_BGCOLOR, bg); }
+   void _SetLabel (string n, string t) { ObjectSetString (0, n, OBJPROP_TEXT,   t); }
+   void _SetButton (string n, string t) { ObjectSetString (0, n, OBJPROP_TEXT,   t); }
+   void _SetBtnColor(string n, color  c) { ObjectSetInteger(0, n, OBJPROP_BGCOLOR, c); }
   };
 
 #endif // OM_UI_MQH
