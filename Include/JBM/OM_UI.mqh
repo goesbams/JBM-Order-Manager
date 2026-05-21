@@ -125,6 +125,7 @@ public:
          if(StringFind(sparam, m_prefix + "BTN_LMT")    >= 0) { m_orderType = OT_LIMIT;  _UpdateAll(); }
          if(StringFind(sparam, m_prefix + "BTN_STP")    >= 0) { m_orderType = OT_STOP;   _UpdateAll(); }
          if(StringFind(sparam, m_prefix + "BTN_SUBMIT") >= 0) { _SubmitOrder(); }
+         if(StringFind(sparam, m_prefix + "BTN_CLOSE")  >= 0) { Destroy(); ChartRedraw(); return; }
          if(StringFind(sparam, m_prefix + "TOG_TP")     >= 0) { m_tpEnabled = !m_tpEnabled; _UpdateAll(); }
          if(StringFind(sparam, m_prefix + "TOG_SL")     >= 0) { m_slEnabled = !m_slEnabled; _UpdateAll(); }
         }
@@ -153,9 +154,11 @@ private:
       int cy = y + GAP;             // current Y cursor
 
       // ─────────────────────────────────────────
-      // SECTION 1 — Symbol + Bid/Ask
+      // SECTION 1 — Symbol + Bid/Ask  +  [X] close
       // ─────────────────────────────────────────
       _Label(m_prefix + "LBL_SYMBOL", x + PAD, cy, Symbol(), SYM_SZ, CLR_TEXT, true);
+      // Close button — top-right corner of panel
+      _Button(m_prefix + "BTN_CLOSE", x + w - 32, y + 4, 26, 26, "X", C'80,30,30', CLR_TEXT);
       cy += 26;
       _Label(m_prefix + "LBL_BID", x + PAD,       cy, "Bid: --",   LBL_SZ, CLR_SELL,     false);
       _Label(m_prefix + "LBL_ASK", x + PAD + 110, cy, "Ask: --",   LBL_SZ, CLR_BUY,      false);
